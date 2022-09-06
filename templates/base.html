@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>Torqeedo Motor Simulator</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+	<link href="{{ url_for('static', filename='css/styles.css') }}" rel="stylesheet">
+    <script src="{{ url_for('static', filename='js/jquery-3.6.1.min.js') }}"></script>
+    <!-- Raphael must be included before justgage -->
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/raphael/2.1.4/raphael-min.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/justgage/1.2.9/justgage.min.js"></script>
+</head>
+
+<style>
+    .battery:after {
+        background-color: #fff;
+        border: 2px solid #000;
+        content: "";
+        display: block;
+        height: 16px;
+        position: absolute;
+        right: -6px;
+        top: 6px;
+        width: 6px;
+    }
+    .battery {
+        background-color: #fff;
+        border: 2px solid #000;
+        height: 32px;
+        margin-left: auto;
+        margin-right: auto;
+        position: relative;
+        width: 100px;
+    }
+    .battery .battery-level {
+        background-color: #666;
+        height: 100%;
+        text-align: center;
+    }
+    .battery .battery-level.high {
+        background-color: #66CD00;
+    }
+    .battery .battery-level.medium {
+        background-color: #FCD116;
+    }
+    .battery .battery-level.low {
+        background-color: #FF3333;
+    }
+
+    .led-box {
+        height: 30px;
+        width: 25%;
+        margin: 10px 0;
+        float: right;
+    }
+
+    .led-red {
+        margin: 0 auto;
+        width: 24px;
+        height: 24px;
+        background-color: #F00;
+        border-radius: 50%;
+        box-shadow: rgba(0, 0, 0, 0.2) 0 -1px 7px 1px, inset #441313 0 -1px 9px, rgba(255, 0, 0, 0.5) 0 2px 12px;
+        -webkit-animation: blinkRed 0.5s infinite;
+        -moz-animation: blinkRed 0.5s infinite;
+        -ms-animation: blinkRed 0.5s infinite;
+        -o-animation: blinkRed 0.5s infinite;
+        animation: blinkRed 0.5s infinite;
+    }
+    
+    @-webkit-keyframes blinkRed {
+        from { background-color: #F00; }
+        50% { background-color: #A00; box-shadow: rgba(0, 0, 0, 0.2) 0 -1px 7px 1px, inset #441313 0 -1px 9px, rgba(255, 0, 0, 0.5) 0 2px 0;}
+        to { background-color: #F00; }
+    }
+    @-moz-keyframes blinkRed {
+        from { background-color: #F00; }
+        50% { background-color: #A00; box-shadow: rgba(0, 0, 0, 0.2) 0 -1px 7px 1px, inset #441313 0 -1px 9px, rgba(255, 0, 0, 0.5) 0 2px 0;}
+        to { background-color: #F00; }
+    }
+    @-ms-keyframes blinkRed {
+        from { background-color: #F00; }
+        50% { background-color: #A00; box-shadow: rgba(0, 0, 0, 0.2) 0 -1px 7px 1px, inset #441313 0 -1px 9px, rgba(255, 0, 0, 0.5) 0 2px 0;}
+        to { background-color: #F00; }
+    }
+    @-o-keyframes blinkRed {
+        from { background-color: #F00; }
+        50% { background-color: #A00; box-shadow: rgba(0, 0, 0, 0.2) 0 -1px 7px 1px, inset #441313 0 -1px 9px, rgba(255, 0, 0, 0.5) 0 2px 0;}
+        to { background-color: #F00; }
+    }
+    @keyframes blinkRed {
+        from { background-color: #F00; }
+        50% { background-color: #A00; box-shadow: rgba(0, 0, 0, 0.2) 0 -1px 7px 1px, inset #441313 0 -1px 9px, rgba(255, 0, 0, 0.5) 0 2px 0;}
+        to { background-color: #F00; }
+    }
+    
+    .led-yellow {
+        margin: 0 auto;
+        width: 24px;
+        height: 24px;
+        background-color: #FF0;
+        border-radius: 50%;
+        box-shadow: rgba(0, 0, 0, 0.2) 0 -1px 7px 1px, inset #808002 0 -1px 9px, #FF0 0 2px 12px;
+        -webkit-animation: blinkYellow 1s infinite;
+        -moz-animation: blinkYellow 1s infinite;
+        -ms-animation: blinkYellow 1s infinite;
+        -o-animation: blinkYellow 1s infinite;
+        animation: blinkYellow 1s infinite;
+    }
+    
+    @-webkit-keyframes blinkYellow {
+        from { background-color: #FF0; }
+        50% { background-color: #AA0; box-shadow: rgba(0, 0, 0, 0.2) 0 -1px 7px 1px, inset #808002 0 -1px 9px, #FF0 0 2px 0; }
+        to { background-color: #FF0; }
+    }
+    @-moz-keyframes blinkYellow {
+        from { background-color: #FF0; }
+        50% { background-color: #AA0; box-shadow: rgba(0, 0, 0, 0.2) 0 -1px 7px 1px, inset #808002 0 -1px 9px, #FF0 0 2px 0; }
+        to { background-color: #FF0; }
+    }
+    @-ms-keyframes blinkYellow {
+        from { background-color: #FF0; }
+        50% { background-color: #AA0; box-shadow: rgba(0, 0, 0, 0.2) 0 -1px 7px 1px, inset #808002 0 -1px 9px, #FF0 0 2px 0; }
+        to { background-color: #FF0; }
+    }
+    @-o-keyframes blinkYellow {
+        from { background-color: #FF0; }
+        50% { background-color: #AA0; box-shadow: rgba(0, 0, 0, 0.2) 0 -1px 7px 1px, inset #808002 0 -1px 9px, #FF0 0 2px 0; }
+        to { background-color: #FF0; }
+    }
+    @keyframes blinkYellow {
+        from { background-color: #FF0; }
+        50% { background-color: #AA0; box-shadow: rgba(0, 0, 0, 0.2) 0 -1px 7px 1px, inset #808002 0 -1px 9px, #FF0 0 2px 0; }
+        to { background-color: #FF0; }
+    }
+    
+    .led-green {
+        margin: 0 auto;
+        width: 24px;
+        height: 24px;
+        background-color: #ABFF00;
+        border-radius: 50%;
+        box-shadow: rgba(0, 0, 0, 0.2) 0 -1px 7px 1px, inset #304701 0 -1px 9px, #89FF00 0 2px 12px;
+    }
+
+      
+</style>
+<body>
+    
+    <div class="header" style="text-align:center; background:lightgray">
+        <h1>Torqeedo Motor Sim</h1>
+    </div>
+    <div class="cards" style="min-height:100%">
+        <div class="row" >
+            <div class="col-md-6">
+                <div class="card" style="width: 95%; margin: auto; min-height:80%">
+                    <!-- <img class="card-img-top" src="" alt="Card image cap"> -->
+                    <div class="card-header" style="text-align:center;">
+                        <h1> Left Motor
+                            <span>
+                                <div class="led-box">
+                                    <div class="led-green"></div>
+                                </div>
+                            </span>
+                            
+                        </h1>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <img src="{{ url_for('static', filename='img/torqeedo.png') }}" width="100%">
+                            </div>
+                            <div class="col-md-8">
+                                <!-- <div id="speedometer">
+                                    <div style="display: none;"><img id="sprite" src="{{ url_for('static', filename='speedometer/assets/icons.svg') }}"></div>
+                                    <canvas id="canvas" width="425" height="210"></canvas>
+                                </div> -->
+                                <!-- <div id="gauge"></div> -->
+                                <!-- <div class="container"> -->
+                                <div class="gauges" >
+                                    <canvas id="rpmLeft" style="margin-left:-30px"></canvas>
+                                    <canvas id="powerLeft" style="margin-left:-30px"></canvas>
+                                    <canvas id="batteryLeft" style="margin-left:-30px" ></canvas>
+                                </div>    
+                                <!-- </div> -->
+                                <!-- Button trigger modal -->
+                                
+
+                                <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#setupLeftMotor">
+                                    Setup Motor
+                                </button>
+
+                                
+                            </div>
+
+                        </div>
+                        <div class="row" style="text-align:center ;">
+                            <div class="title"> 
+                                <h2>Simulate Error Codes</h2> 
+                            </div>
+                            <br>
+                            <div id="errors">
+                                <input type="checkbox" class="btn-check" name="options" id="option1" autocomplete="off" checked>
+                                <label class="btn btn-success" for="option1">Propeller Free</label>
+
+                                <input type="checkbox" class="btn-check" name="options" id="option2" autocomplete="off">
+                                <label class="btn btn-success" for="option2">Motor Voltage Ok</label>
+
+                                <input type="checkbox" class="btn-check" name="options" id="option3" autocomplete="off">
+                                <label class="btn btn-success" for="option3">Motor Current Ok</label>
+
+                                <input type="checkbox" class="btn-check" name="options" id="option4" autocomplete="off">
+                                <label class="btn btn-success" for="option4">Comms Ok</label>
+
+                                <input type="checkbox" class="btn-check" name="options" id="option4" autocomplete="off">
+                                <label class="btn btn-success" for="option4">Battery Temp Ok</label>
+                            </div>
+                        </div>
+                      
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card" style="width: 95%; margin: auto; min-height:80%">
+                    <!-- <img class="card-img-top" src="" alt="Card image cap"> -->
+                    <div class="card-header" style="text-align:center;">
+                        <h1> Right Motor
+                            <span>
+                                <div class="led-box">
+                                    <div class="led-green"></div>
+                                </div>
+                            </span>
+                            
+                        </h1>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+
+                        </div>
+                        <div class="row">
+                            <div class="col-md-8">
+                                <div class="gauges" >
+                                    <canvas id="rpmRight" style=""></canvas>
+                                    <canvas id="powerRight" style="margin-left:-30px"></canvas>
+                                    <canvas id="batteryRight" style="margin-left:-30px" ></canvas>
+                                </div> 
+                                <!-- Button trigger modal -->
+                                <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#setupLeftMotor">
+                                    Setup Motor
+                                </button>
+
+                                
+                            </div>
+                            <div class="col-md-4">
+                                <img src="{{ url_for('static', filename='img/torqeedo.png') }}" width="100%" style="transform: scaleX(-1);">
+                            </div>
+                        </div>
+                        <div class="row" style="text-align:center ;">
+                            <div class="title"> 
+                                <h2>Simulate Error Codes</h2> 
+                            </div>
+                            <br>
+                            <div id="errors">
+                                <input type="checkbox" class="btn-check" name="options" id="option1" autocomplete="off" checked>
+                                <label class="btn btn-success" for="option1">Propeller Free</label>
+
+                                <input type="checkbox" class="btn-check" name="options" id="option2" autocomplete="off">
+                                <label class="btn btn-success" for="option2">Motor Voltage Ok</label>
+
+                                <input type="checkbox" class="btn-check" name="options" id="option3" autocomplete="off">
+                                <label class="btn btn-success" for="option3">Motor Current Ok</label>
+
+                                <input type="checkbox" class="btn-check" name="options" id="option4" autocomplete="off">
+                                <label class="btn btn-success" for="option4">Comms Ok</label>
+
+                                <input type="checkbox" class="btn-check" name="options" id="option4" autocomplete="off">
+                                <label class="btn btn-success" for="option4">Battery Temp Ok</label>
+                            </div>
+                        </div>
+                        <div class="row">
+                            
+                        </div>
+                        
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="modal" tabindex="-1" role="dialog" id="setupLeftMotor" aria-hidden="true">
+            <div class="modal-dialog" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h5 class="modal-title">Left Motor Setup</h5>
+                  <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                  </button>
+                </div>
+                <div class="modal-body">
+                    <h1>Left Motor</h1>
+                    <button id="randomize">Randomize</button>
+                    <br><br>
+                    <label for="speed">Speed</label>
+                    <input type="number" id="speed" name="speed" min="0" max="1" step="0.005">
+                    <label for="tacho">Tachometer</label>
+                    <input type="number" id="tacho" name="tacho" min="0" max="1" step="0.005">
+                    <label for="gas">Gas</label>
+                    <input type="number" id="gas" name="gas" min="0" max="1" step="0.005">
+                    <label for="mileage">Mileage</label>
+                    <input type="number" id="mileage" name="mileage" min="0" step="0.005">
+                    <h3>Turn Signals</h3>
+                    <label for="leftSign">Back Signal</label>
+                    <input type="checkbox" name="leftSign" id="leftSign" checked>
+                    <label for="rightSign">Forward Signal</label>
+                    <input type="checkbox" name="rightSign" id="rightSign" checked>
+                    <!-- <h3>Main Circle</h3> -->
+                    <!-- <label for="dippedBeam">Dipped Beam</label>
+                    <input type="number" name="dippedBeam" id="dippedBeam" min="0" max="2" step="1" value="2">
+                    <label for="brake">Brake</label>
+                    <input type="number" name="brake" id="brake" min="0" max="2" step="1" value="2">
+                    <label for="drift">Drift</label>
+                    <input type="number" name="drift" id="drift" min="0" max="2" step="1" value="2">
+                    <label for="highBeam">High Beam</label>
+                    <input type="number" name="highBeam" id="highBeam" min="0" max="2" step="1" value="2">
+                    <label for="lock">Lock</label>
+                    <input type="number" name="lock" id="lock" min="0" max="2" step="1" value="2">
+                    <label for="seatBelt">Seat Belt</label> -->
+                    <!-- <input type="number" name="seatBelt" id="seatBelt" min="0" max="2" step="1" value="2"> -->
+                    <label for="engineTemp">Engine Temp</label>
+                    <input type="number" name="engineTemp" id="engineTemp" min="0" max="2" step="1" value="2">
+                    <!-- <label for="stab">Stab</label>
+                    <input type="number" name="stab" id="stab" min="0" max="2" step="1" value="2">
+                    <label for="abs">ABS</label>
+                    <input type="number" name="abs" id="abs" min="0" max="2" step="1" value="2">
+                    <h3>Right Circle</h3> -->
+                    <label for="gasIcon">Gas</label>
+                    <input type="number" name="gasIcon" id="gasIcon" min="0" max="3" step="1" value="2">
+                    <!-- <label for="trunk">Trunk</label>
+                    <input type="number" name="trunk" id="trunk" min="0" max="2" step="1" value="2">
+                    <label for="bonnet">Bonnet</label>
+                    <input type="number" name="bonnet" id="bonnet" min="0" max="2" step="1" value="2">
+                    <label for="doors">Doors</label>
+                    <input type="number" name="doors" id="doors" min="0" max="2" step="1" value="2"> -->
+                    <h3>Left Circle</h3>
+                    <label for="battery">Battery</label>
+                    <input type="number" name="battery" id="battery" min="0" max="3" step="1" value="2">
+                    <label for="oil">Oil</label>
+                    <input type="number" name="oil" id="oil" min="0" max="3" step="1" value="2">
+                    <label for="engineFail">Engine Fail</label>
+                    <input type="number" name="engineFail" id="engineFail" min="0" max="3" step="1" value="2">
+                </div>
+                <div class="modal-footer">
+                  <button type="button" class="btn btn-primary">Save changes</button>
+                  <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                </div>
+              </div>
+            </div>
+        </div>
+
+        <div class="modal" tabindex="-1" role="dialog" id="setupRightMotor">
+            <div class="modal-dialog" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h5 class="modal-title">Right Motor Setup</h5>
+                  <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                  </button>
+                </div>
+                <div class="modal-body">
+                    <h1>Right Motor</h1>
+                    <button id="randomizeRight">Randomize</button>
+                    <br><br>
+                    <label for="speedRight">Speed</label>
+                    <input type="number" id="speedRight" name="speedRight" min="0" max="1" step="0.005">
+                    <label for="tachoRight">Tachometer</label>
+                    <input type="number" id="tachoRight" name="tachoRight" min="0" max="1" step="0.005">
+                    <label for="gasRight">Gas</label>
+                    <input type="number" id="gasRight" name="gasRight" min="0" max="1" step="0.005">
+                    <label for="mileageRight">Mileage</label>
+                    <input type="number" id="mileageRight" name="mileageRight" min="0" step="0.005">
+                    <h3>Turn Signals</h3>
+                    <label for="leftSignRight">Back Signal</label>
+                    <input type="checkbox" name="leftSignRight" id="leftSignRight" checked>
+                    <label for="rightSignRight">Forward Signal</label>
+                    <input type="checkbox" name="rightSignRight" id="rightSignRight" checked>
+                    <!-- <h3>Main Circle</h3> -->
+                    <!-- <label for="dippedBeam">Dipped Beam</label>
+                    <input type="number" name="dippedBeam" id="dippedBeam" min="0" max="2" step="1" value="2">
+                    <label for="brake">Brake</label>
+                    <input type="number" name="brake" id="brake" min="0" max="2" step="1" value="2">
+                    <label for="drift">Drift</label>
+                    <input type="number" name="drift" id="drift" min="0" max="2" step="1" value="2">
+                    <label for="highBeam">High Beam</label>
+                    <input type="number" name="highBeam" id="highBeam" min="0" max="2" step="1" value="2">
+                    <label for="lock">Lock</label>
+                    <input type="number" name="lock" id="lock" min="0" max="2" step="1" value="2">
+                    <label for="seatBelt">Seat Belt</label> -->
+                    <!-- <input type="number" name="seatBelt" id="seatBelt" min="0" max="2" step="1" value="2"> -->
+                    <label for="engineTempRight">Engine Temp</label>
+                    <input type="number" name="engineTempRight" id="engineTempRight" min="0" max="2" step="1" value="2">
+                    <!-- <label for="stab">Stab</label>
+                    <input type="number" name="stab" id="stab" min="0" max="2" step="1" value="2">
+                    <label for="abs">ABS</label>
+                    <input type="number" name="abs" id="abs" min="0" max="2" step="1" value="2">
+                    <h3>Right Circle</h3> -->
+                    <label for="gasIconRight">Gas</label>
+                    <input type="number" name="gasIconRight" id="gasIconRight" min="0" max="3" step="1" value="2">
+                    <!-- <label for="trunk">Trunk</label>
+                    <input type="number" name="trunk" id="trunk" min="0" max="2" step="1" value="2">
+                    <label for="bonnet">Bonnet</label>
+                    <input type="number" name="bonnet" id="bonnet" min="0" max="2" step="1" value="2">
+                    <label for="doors">Doors</label>
+                    <input type="number" name="doors" id="doors" min="0" max="2" step="1" value="2"> -->
+                    <h3>Left Circle</h3>
+                    <label for="batteryRight">Battery</label>
+                    <input type="number" name="batteryRight" id="batteryRight" min="0" max="3" step="1" value="2">
+                    <label for="oilRight">Oil</label>
+                    <input type="number" name="oilRight" id="oilRight" min="0" max="3" step="1" value="2">
+                    <label for="engineFailRight">Engine Fail</label>
+                    <input type="number" name="engineFailRight" id="engineFailRight" min="0" max="3" step="1" value="2">
+                </div>
+                <div class="modal-footer">
+                  <button type="button" class="btn btn-primary">Save changes</button>
+                  <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                </div>
+              </div>
+            </div>
+        </div>
+
+    </div>
+    
+    <!-- <script src="{{ url_for('static', filename='speedometer/js/fraction.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='speedometer/js/speedometer.js') }}"></script>
+    <script src="{{ url_for('static', filename='speedometer/js/demo.js') }}"></script> -->
+    
+    
+
+    {# a comment #}
+</body>
+
+<script>
+    var timers = [];
+
+    function initScriptedGauges() {
+        var powerLeft = new RadialGauge({
+            renderTo: 'powerLeft',
+            width: 250,
+            height: 250,
+            units: 'Power',
+            title: false,
+            valueInt: 1,
+            valueDec: 0,
+            minValue: -1000,
+            maxValue: 1000,
+            majorTicks: [
+                '-1000','-800','-600','-400','-200','0','200','400','600','800','1000'
+            ],
+            minorTicks: 2,
+            strokeTicks: false,
+            highlights: [
+                { from: -1000, to: -800, color: 'rgba(255,0,0,.25)' },
+                { from: -800, to: -400, color: 'rgba(255,255,0,.15)' },
+                { from: -400, to: 400, color: 'rgba(0,255,0,.25)' },
+                { from: 400, to: 800, color: 'rgba(255,255,0,.15)' },
+                { from: 800, to: 1000, color: 'rgba(255,0,0,.25)' },
+            ],
+            colorPlate: '#222',
+            colorMajorTicks: '#f5f5f5',
+            colorMinorTicks: '#ddd',
+            colorTitle: '#fff',
+            colorUnits: '#ccc',
+            colorNumbers: '#eee',
+            colorNeedle: 'rgba(240, 128, 128, 1)',
+            colorNeedleEnd: 'rgba(255, 160, 122, .9)',
+            valueBox: true,
+            animationRule: 'bounce',
+            animatedValue: true, 
+            animationDuration: 500
+        });
+        powerLeft.draw();
+        powerLeft.value = "0";
+
+        var batteryLeft = new RadialGauge({
+            renderTo: "batteryLeft",
+            width: 150,
+            height: 150,
+            units: '%',
+            title: false,
+            value: 0,
+            minValue: 0,
+            maxValue: 100,
+            majorTicks: [
+                '0','20','40','60','80','100', 
+            ],
+            minorTicks: 2,
+            strokeTicks: false,
+            highlights: [
+                { from: 0, to: 30, color: 'rgba(255,0,0,.25)' },
+                { from: 30, to: 60, color: 'rgba(255,255,0,.15)' },
+                { from: 60, to: 100, color: 'rgba(0,255,0,.25)' },
+            ],
+            colorPlate: '#222',
+            colorMajorTicks: '#f5f5f5',
+            colorMinorTicks: '#ddd',
+            colorTitle: '#fff',
+            colorUnits: '#ccc',
+            colorNumbers: '#eee',
+            valueBox: true,
+            animationRule: 'bounce',
+            animationDuration: 500
+        });
+        batteryLeft.draw();
+        batteryLeft.value = "100";
+
+        var rpmLeft = new RadialGauge({
+            renderTo: 'rpmLeft',
+            width: 150,
+            height: 150,
+            units: 'RPM',
+            title: false,
+            value: 0,
+            minValue: 0,
+            maxValue: 1800,
+            majorTicks: [
+                '0','200','400','600','800','1000','1200','1400','1600','1800'
+            ],
+            minorTicks: 2,
+            strokeTicks: false,
+            highlights: [
+                { from: 0, to: 1000, color: 'rgba(0,255,0,.25)' },
+                { from: 1000, to: 1400, color: 'rgba(255,255,0,.15)' },
+                { from: 1400, to: 1800, color: 'rgba(255,0,0,.25)' },
+            ],
+            colorPlate: '#222',
+            colorMajorTicks: '#f5f5f5',
+            colorMinorTicks: '#ddd',
+            colorTitle: '#fff',
+            colorUnits: '#ccc',
+            colorNumbers: '#eee',
+            colorNeedle: 'rgba(240, 128, 128, 1)',
+            colorNeedleEnd: 'rgba(255, 160, 122, .9)',
+            valueBox: true,
+            animationRule: 'bounce',
+            animationDuration: 500
+        });
+        rpmLeft.draw();
+        rpmLeft.value = "0";
+
+        var powerRight = new RadialGauge({
+            renderTo: 'powerRight',
+            width: 250,
+            height: 250,
+            units: 'Power',
+            title: false,
+            value: 0,
+            minValue: -1000,
+            maxValue: 1000,
+            majorTicks: [
+                '-1000','-800','-600','-400','-200','0','200','400','600','800','1000'
+            ],
+            minorTicks: 2,
+            strokeTicks: false,
+            highlights: [
+                { from: -1000, to: -800, color: 'rgba(255,0,0,.25)' },
+                { from: -800, to: -400, color: 'rgba(255,255,0,.15)' },
+                { from: -400, to: 400, color: 'rgba(0,255,0,.25)' },
+                { from: 400, to: 800, color: 'rgba(255,255,0,.15)' },
+                { from: 800, to: 1000, color: 'rgba(255,0,0,.25)' },
+            ],
+            colorPlate: '#222',
+            colorMajorTicks: '#f5f5f5',
+            colorMinorTicks: '#ddd',
+            colorTitle: '#fff',
+            colorUnits: '#ccc',
+            colorNumbers: '#eee',
+            colorNeedle: 'rgba(240, 128, 128, 1)',
+            colorNeedleEnd: 'rgba(255, 160, 122, .9)',
+            valueBox: true,
+            animationRule: 'bounce',
+            animationDuration: 500
+        });
+        powerRight.draw();
+        powerRight.value = "0";
+
+        var batteryRight = new RadialGauge({
+            renderTo: 'batteryRight',
+            width: 150,
+            height: 150,
+            units: '%',
+            title: false,
+            value: 0,
+            minValue: 0,
+            maxValue: 100,
+            majorTicks: [
+                '0','20','40','60','80','100', 
+            ],
+            minorTicks: 2,
+            strokeTicks: false,
+            highlights: [
+                { from: 0, to: 30, color: 'rgba(255,0,0,.25)' },
+                { from: 30, to: 60, color: 'rgba(255,255,0,.15)' },
+                { from: 60, to: 100, color: 'rgba(0,255,0,.25)' },
+            ],
+            colorPlate: '#222',
+            colorMajorTicks: '#f5f5f5',
+            colorMinorTicks: '#ddd',
+            colorTitle: '#fff',
+            colorUnits: '#ccc',
+            colorNumbers: '#eee',
+            valueBox: true,
+            animationRule: 'bounce',
+            animationDuration: 500
+        });
+        batteryRight.draw();
+        batteryRight.value = "100";
+
+        var rpmRight = new RadialGauge({
+            renderTo: 'rpmRight',
+            width: 150,
+            height: 150,
+            units: 'RPM',
+            title: false,
+            value: 0,
+            minValue: 0,
+            maxValue: 1800,
+            majorTicks: [
+                '0','200','400','600','800','1000','1200','1400','1600','1800'
+            ],
+            minorTicks: 2,
+            strokeTicks: false,
+            highlights: [
+                { from: 0, to: 1000, color: 'rgba(0,255,0,.25)' },
+                { from: 1000, to: 1400, color: 'rgba(255,255,0,.15)' },
+                { from: 1400, to: 1800, color: 'rgba(255,0,0,.25)' },
+            ],
+            colorPlate: '#222',
+            colorMajorTicks: '#f5f5f5',
+            colorMinorTicks: '#ddd',
+            colorTitle: '#fff',
+            colorUnits: '#ccc',
+            colorNumbers: '#eee',
+            colorNeedle: 'rgba(240, 128, 128, 1)',
+            colorNeedleEnd: 'rgba(255, 160, 122, .9)',
+            valueBox: true,
+            animationRule: 'bounce',
+            animationDuration: 500
+        });
+        rpmRight.draw();
+        rpmRight.value = "0";
+
+        
+    }
+    
+</script>
+<script src="{{ url_for('static', filename='gauges/gauge.min.js') }}" onload="initScriptedGauges()"></script>
+
+
+</html>
