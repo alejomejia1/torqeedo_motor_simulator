@@ -206,7 +206,7 @@ class TorqeedoMotorSim:
         return string_value
 
     def motor_status_data(self, status_flags, error_flags):
-        status = REQ_MOTOR_STATUS_FROM_BATT_TO_MOTOR
+        status = SEND_MOTOR_STATUS_FROM_MOTOR_TO_BATT
         status[2] = status_flags
         status[3] = error_flags >> 8
         status[4] = error_flags & 0x00ff
@@ -287,6 +287,17 @@ class TorqeedoMotorSim:
                 return "charging temp error"
             case _:
                 return "Code not found"
+            
+  
+    def parse_message(self,msg):
+        byteObj = bytes(msg)
+        # print(byteObj[2], byteObj[3])
+        if (byteObj[2] == 0 and byteObj[3]== 0):
+            cmd = byteObj[6:8]
+            pwr = int.from_bytes(cmd, "big", signed=True)
+            self._power = pwr
+            print(pwr)
+        
         
     def state_machine(self):
         self.t1=time.perf_counter_ns()
@@ -339,14 +350,16 @@ class TorqeedoMotorSim:
                 if self.rxState==0:
                     if self.read==b'\xac':
                         #print("AC received")
+                        self.command.clear()
                         self.rxState=1
                 
                 elif self.rxState==1:
                     if self.read==b'\xad':
                         #print("AD received")
-                        for i in range (len(self.command)):
-                            print(hex(self.command[i]), end=" ")
-                        print("")
+                        # for i in range (len(self.command)):
+                        #     print(hex(self.command[i]), end=" ")
+                        # print(" ")
+                        self.parse_message(self.command)    
                         self.command.clear()
                         rxState=0
                     else:
