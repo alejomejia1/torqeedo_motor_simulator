@@ -3,7 +3,7 @@ from flask import Flask, render_template, jsonify
 import serial
 import time
 from apscheduler.schedulers.background import  BackgroundScheduler
-from torqeedo_motor_sim import TorqeedoMotorSim
+from torqeedo_motor_sim.torqeedo_motor_sim import TorqeedoMotorSim
 
 # set configuration values
 class Config:
